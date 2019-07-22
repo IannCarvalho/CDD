@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1561723491404.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "983F8F9F",
+    "lastKnownWriteTime" : 1561726820,
+    "last_content_update" : 1561726893237,
+    "path" : "~/Área de Trabalho/eda-congresso-twitter/reports/a-report.Rmd",
+    "project_path" : "reports/a-report.Rmd",
+    "properties" : {
+        "cursorPosition" : "69,87",
+        "scrollLine" : "65"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

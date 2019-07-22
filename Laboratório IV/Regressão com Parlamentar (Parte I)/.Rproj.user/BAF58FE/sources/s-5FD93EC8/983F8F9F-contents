@@ -1,0 +1,72 @@
+---
+title: "REPLACE ME"
+output:
+    html_document:
+    df_print: paged
+theme: sandstone
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+source(here::here("code/lib.R"))
+theme_set(theme_bw())
+```
+
+```{r read}
+atividade = read_projectdata()
+
+atividade = atividade %>% 
+  filter(seguidores > 0, n_proprio > 0, n_retweet > 0)
+
+atividade
+```
+
+```{r}
+atividade %>% 
+  ggplot(aes(x = n_proprio, y = engaj_total)) + 
+  geom_point() + 
+  scale_y_log10() + 
+  scale_x_log10()
+
+atividade %>% 
+  ggplot(aes(x = n_retweet, y = engaj_total)) + 
+  geom_point() + 
+  scale_y_log10() + 
+  scale_x_log10()
+```
+
+```{r}
+atividade = atividade %>% 
+  mutate(engaj_total_log = log10(engaj_total), 
+         n_proprio_log = log10(n_proprio), 
+         n_retweet_log = log10(n_retweet))
+```
+
+
+```{r}
+modelo = lm(engaj_total_log ~ n_proprio_log + n_retweet_log + casa, 
+   data = atividade)
+
+tidy(modelo)
+glance(modelo)
+```
+```{r}
+para_plotar_modelo = atividade %>% 
+  data_grid(n_proprio_log = seq_range(n_proprio_log, 10), # Crie um vetor de 10 valores no range
+            n_retweet_log = mean(n_retweet_log), # todos na média
+            casa = c("câmara","senado")) %>% 
+  add_predictions(modelo)
+```
+
+```{r}
+ggplot(data = atividade, aes(x = n_proprio_log)) + 
+  geom_point(aes(y = engaj_total_log)) + 
+  geom_line(data = para_plotar_modelo, aes(y = pred, color = casa), size = 1.5)
+```
+
+```{r}
+ggplot(data = atividade, aes(x = 10**n_proprio_log)) + 
+  # geom_point(aes(y = 10**seguidores_log)) + 
+  geom_line(data = para_plotar_modelo, aes(y = 10**pred), color = "orange", size = 1.5)
+```
+

@@ -1,0 +1,4 @@
+"0","atividade %>% "
+"0","  filter(!is.na(seguidores), UF == ""PB"") %>% "
+"0","  ggplot(aes(x = nome_eleitoral, y = seguidores)) + "
+"0","  geom_col()"

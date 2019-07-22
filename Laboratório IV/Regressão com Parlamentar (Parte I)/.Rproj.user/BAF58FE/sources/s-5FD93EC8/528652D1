@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1561723510384.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "528652D1",
+    "lastKnownWriteTime" : 1561723422,
+    "last_content_update" : 1561723518523,
+    "path" : "~/Área de Trabalho/eda-congresso-twitter/reports/dicas-regressao.Rmd",
+    "project_path" : "reports/dicas-regressao.Rmd",
+    "properties" : {
+        "chunk_output_type" : "inline",
+        "cursorPosition" : "80,0",
+        "scrollLine" : "77"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

@@ -1,0 +1,18 @@
+"0","para_plotar_modelo = atividade %>% "
+"0","  data_grid(n_proprio_log = seq_range(n_proprio_log, 10), # Crie um vetor de 10 valores no range"
+"0","            n_retweet_log = mean(n_retweet_log), # todos na média"
+"0","            casa = ""senado"") %>% "
+"0","  add_predictions(modelo)"
+"0","glimpse(para_plotar_modelo)"
+"1","Observations: 10
+"
+"1","Variables: 4
+"
+"1","$ n_proprio_log [3m[38;5;246m<dbl>[39m[23m 0.0000000, 0.3584251, 0.7168502, 1.0752753, 1.4337004, 1.7921256, 2.1505507, 2.5089758, 2.8674009, 3.…
+"
+"1","$ n_retweet_log [3m[38;5;246m<dbl>[39m[23m 1.158325, 1.158325, 1.158325, 1.158325, 1.158325, 1.158325, 1.158325, 1.158325, 1.158325, 1.158325
+"
+"1","$ casa          [3m[38;5;246m<chr>[39m[23m ""senado"", ""senado"", ""senado"", ""senado"", ""senado"", ""senado"", ""senado"", ""senado"", ""senado"", ""senado""
+"
+"1","$ pred          [3m[38;5;246m<dbl>[39m[23m 2.828676, 3.063559, 3.298443, 3.533326, 3.768210, 4.003094, 4.237977, 4.472861, 4.707745, 4.942628
+"

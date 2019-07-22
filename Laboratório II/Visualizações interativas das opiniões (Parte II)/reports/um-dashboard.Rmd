@@ -1,0 +1,67 @@
+---
+title: "Um Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(viridis)
+library(hrbrthemes)
+theme_set(theme_ipsum())
+
+respostas = read_csv(here::here("data/enade-ccc-2017.csv"),
+                     col_types = "cccdccdddc")
+
+cursos = respostas %>% 
+    group_by(UF) %>% 
+    summarise(n = n(), 
+              media = mean(media))
+
+criterios = respostas %>% 
+    group_by(UF, categoria) %>% 
+    summarise(media = mean(media))
+
+```
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Parte 1
+
+```{r}
+criterios %>%
+    filter(categoria != "Outros") %>%
+    ggplot(aes(
+        x = reorder(UF, media),
+        y = reorder(categoria, media),
+        fill = media
+    )) +
+    geom_tile() + 
+    scale_fill_viridis() + 
+    theme(legend.position = "bottom")
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Parte 2
+
+```{r}
+cursos %>% 
+    ggplot(aes(x = UF, y = media)) + 
+    geom_col() + 
+    coord_flip()
+```
+
+### Parte 3
+
+```{r}
+cursos %>% 
+    ggplot(aes(x = UF, y = n)) + 
+    geom_col()
+```
+

@@ -1,0 +1,228 @@
+---
+title: "Politicagem Tuiteira"
+author: "Iann Carvalho" 
+output:
+    html_document:
+    df_print: paged
+theme: sandstone
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(plotly)
+library(dplyr)
+source(here::here("code/lib.R"))
+theme_set(theme_bw())
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+atividade = read_projectdata()
+```
+
+## Preparação do Ambiente
+
+  Para as análises apresentadas a seguir, foram utilizadas as bibliotecas **tidyverse**, **ggplot2**, **dplyr** e **plotly**. Os dados usados para essa análise, foram:
+
+```{r}
+glimpse(atividade)
+```
+
+## Análise dos dados
+
+### 1. Calculando correlações
+
+  Para uma boa análise dos dados mostrou-se imprescindível a utilização de fórmulas estátisticas de correlação para entender melhor a relação entre duas diferentes variáveis. Para isso, foram criadas colunas com o resultado do cálculo das fórmulas de pearson, spearman e kendall, afim de entender mais claramente as relações.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+dados = atividade %>%
+filter(!is.na(twitter) & partido != "S/Partido" & !is.na(seguidores)) %>%
+mutate(total_tweets = n_proprio + n_retweet, casa = if_else(casa == 'senado', 'Senado', 'Câmara'))
+corr = dados %>% summarise(correlacao = "seguidores + segue", pearson = cor(seguidores, segue, method = "pearson"), spearman = cor(seguidores, segue, method = "spearman"), kendall = cor(seguidores, segue, method = "kendall"))
+corr_2 = dados %>% summarise(correlacao = "seguidores + segue", pearson = cor(seguidores, segue, method = "pearson"), spearman = cor(seguidores, segue, method = "spearman"), kendall = cor(seguidores, segue, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "seguidores + n_proprio", pearson = cor(seguidores, n_proprio, method = "pearson"), spearman = cor(seguidores, n_proprio, method = "spearman"), kendall = cor(seguidores, n_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "seguidores + n_retweet", pearson = cor(seguidores, n_retweet, method = "pearson"), spearman = cor(seguidores, n_retweet, method = "spearman"), kendall = cor(seguidores, n_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "seguidores + engaj_total", pearson = cor(seguidores, engaj_total, method = "pearson"), spearman = cor(seguidores, engaj_total, method = "spearman"), kendall = cor(seguidores, engaj_total, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "seguidores + engaj_total_proprio", pearson = cor(seguidores, engaj_total_proprio, method = "pearson"), spearman = cor(seguidores, engaj_total_proprio, method = "spearman"), kendall = cor(seguidores, engaj_total_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "seguidores + engaj_total_retweet", pearson = cor(seguidores, engaj_total_retweet, method = "pearson"), spearman = cor(seguidores, engaj_total_retweet, method = "spearman"), kendall = cor(seguidores, engaj_total_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "seguidores + engaj_mediano", pearson = cor(seguidores, engaj_mediano, method = "pearson"), spearman = cor(seguidores, engaj_mediano, method = "spearman"), kendall = cor(seguidores, engaj_mediano, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "seguidores + engaj_mediano_proprio", pearson = cor(seguidores, engaj_mediano_proprio, method = "pearson"), spearman = cor(seguidores, engaj_mediano_proprio, method = "spearman"), kendall = cor(seguidores, engaj_mediano_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "seguidores + engaj_mediano_retweet", pearson = cor(seguidores, engaj_mediano_retweet, method = "pearson"), spearman = cor(seguidores, engaj_mediano_retweet, method = "spearman"), kendall = cor(seguidores, engaj_mediano_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "seguidores + engaj_max", pearson = cor(seguidores, engaj_max, method = "pearson"), spearman = cor(seguidores, engaj_max, method = "spearman"), kendall = cor(seguidores, engaj_max, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "seguidores + engaj_max_proprio", pearson = cor(seguidores, engaj_max_proprio, method = "pearson"), spearman = cor(seguidores, engaj_max_proprio, method = "spearman"), kendall = cor(seguidores, engaj_max_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "segue + n_proprio", pearson = cor(segue, n_proprio, method = "pearson"), spearman = cor(segue, n_proprio, method = "spearman"), kendall = cor(segue, n_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "segue + n_retweet", pearson = cor(segue, n_retweet, method = "pearson"), spearman = cor(segue, n_retweet, method = "spearman"), kendall = cor(segue, n_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "segue + engaj_total", pearson = cor(segue, engaj_total, method = "pearson"), spearman = cor(segue, engaj_total, method = "spearman"), kendall = cor(segue, engaj_total, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "segue + engaj_total_proprio", pearson = cor(segue, engaj_total_proprio, method = "pearson"), spearman = cor(segue, engaj_total_proprio, method = "spearman"), kendall = cor(segue, engaj_total_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "segue + engaj_total_retweet", pearson = cor(segue, engaj_total_retweet, method = "pearson"), spearman = cor(segue, engaj_total_retweet, method = "spearman"), kendall = cor(segue, engaj_total_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "segue + engaj_mediano", pearson = cor(segue, engaj_mediano, method = "pearson"), spearman = cor(segue, engaj_mediano, method = "spearman"), kendall = cor(segue, engaj_mediano, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "segue + engaj_mediano_proprio", pearson = cor(segue, engaj_mediano_proprio, method = "pearson"), spearman = cor(segue, engaj_mediano_proprio, method = "spearman"), kendall = cor(segue, engaj_mediano_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "segue + engaj_mediano_retweet", pearson = cor(segue, engaj_mediano_retweet, method = "pearson"), spearman = cor(segue, engaj_mediano_retweet, method = "spearman"), kendall = cor(segue, engaj_mediano_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "segue + engaj_max", pearson = cor(segue, engaj_max, method = "pearson"), spearman = cor(segue, engaj_max, method = "spearman"), kendall = cor(segue, engaj_max, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "segue + engaj_max_proprio", pearson = cor(segue, engaj_max_proprio, method = "pearson"), spearman = cor(segue, engaj_max_proprio, method = "spearman"), kendall = cor(segue, engaj_max_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_proprio + n_retweet", pearson = cor(n_proprio, n_retweet, method = "pearson"), spearman = cor(n_proprio, n_retweet, method = "spearman"), kendall = cor(n_proprio, n_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_proprio + engaj_total", pearson = cor(n_proprio, engaj_total, method = "pearson"), spearman = cor(n_proprio, engaj_total, method = "spearman"), kendall = cor(n_proprio, engaj_total, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_proprio + engaj_total_proprio", pearson = cor(n_proprio, engaj_total_proprio, method = "pearson"), spearman = cor(n_proprio, engaj_total_proprio, method = "spearman"), kendall = cor(n_proprio, engaj_total_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_proprio + engaj_total_retweet", pearson = cor(n_proprio, engaj_total_retweet, method = "pearson"), spearman = cor(n_proprio, engaj_total_retweet, method = "spearman"), kendall = cor(n_proprio, engaj_total_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_proprio + engaj_mediano", pearson = cor(n_proprio, engaj_mediano, method = "pearson"), spearman = cor(n_proprio, engaj_mediano, method = "spearman"), kendall = cor(n_proprio, engaj_mediano, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_proprio + engaj_mediano_proprio", pearson = cor(n_proprio, engaj_mediano_proprio, method = "pearson"), spearman = cor(n_proprio, engaj_mediano_proprio, method = "spearman"), kendall = cor(n_proprio, engaj_mediano_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_proprio + engaj_mediano_retweet", pearson = cor(n_proprio, engaj_mediano_retweet, method = "pearson"), spearman = cor(n_proprio, engaj_mediano_retweet, method = "spearman"), kendall = cor(n_proprio, engaj_mediano_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_proprio + engaj_max", pearson = cor(n_proprio, engaj_max, method = "pearson"), spearman = cor(n_proprio, engaj_max, method = "spearman"), kendall = cor(n_proprio, engaj_max, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_proprio + engaj_max_proprio", pearson = cor(n_proprio, engaj_max_proprio, method = "pearson"), spearman = cor(n_proprio, engaj_max_proprio, method = "spearman"), kendall = cor(n_proprio, engaj_max_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_retweet + engaj_total", pearson = cor(n_retweet, engaj_total, method = "pearson"), spearman = cor(n_retweet, engaj_total, method = "spearman"), kendall = cor(n_retweet, engaj_total, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_retweet + engaj_total_proprio", pearson = cor(n_retweet, engaj_total_proprio, method = "pearson"), spearman = cor(n_retweet, engaj_total_proprio, method = "spearman"), kendall = cor(n_retweet, engaj_total_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_retweet + engaj_total_retweet", pearson = cor(n_retweet, engaj_total_retweet, method = "pearson"), spearman = cor(n_retweet, engaj_total_retweet, method = "spearman"), kendall = cor(n_retweet, engaj_total_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_retweet + engaj_mediano", pearson = cor(n_retweet, engaj_mediano, method = "pearson"), spearman = cor(n_retweet, engaj_mediano, method = "spearman"), kendall = cor(n_retweet, engaj_mediano, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_retweet + engaj_mediano_proprio", pearson = cor(n_retweet, engaj_mediano_proprio, method = "pearson"), spearman = cor(n_retweet, engaj_mediano_proprio, method = "spearman"), kendall = cor(n_retweet, engaj_mediano_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_retweet + engaj_mediano_retweet", pearson = cor(n_retweet, engaj_mediano_retweet, method = "pearson"), spearman = cor(n_retweet, engaj_mediano_retweet, method = "spearman"), kendall = cor(n_retweet, engaj_mediano_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_retweet + engaj_max", pearson = cor(n_retweet, engaj_max, method = "pearson"), spearman = cor(n_retweet, engaj_max, method = "spearman"), kendall = cor(n_retweet, engaj_max, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "n_retweet + engaj_max_proprio", pearson = cor(n_retweet, engaj_max_proprio, method = "pearson"), spearman = cor(n_retweet, engaj_max_proprio, method = "spearman"), kendall = cor(n_retweet, engaj_max_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total + engaj_total_proprio", pearson = cor(engaj_total, engaj_total_proprio, method = "pearson"), spearman = cor(engaj_total, engaj_total_proprio, method = "spearman"), kendall = cor(engaj_total, engaj_total_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total + engaj_total_retweet", pearson = cor(engaj_total, engaj_total_retweet, method = "pearson"), spearman = cor(engaj_total, engaj_total_retweet, method = "spearman"), kendall = cor(engaj_total, engaj_total_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total + engaj_mediano", pearson = cor(engaj_total, engaj_mediano, method = "pearson"), spearman = cor(engaj_total, engaj_mediano, method = "spearman"), kendall = cor(engaj_total, engaj_mediano, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total + engaj_mediano_proprio", pearson = cor(engaj_total, engaj_mediano_proprio, method = "pearson"), spearman = cor(engaj_total, engaj_mediano_proprio, method = "spearman"), kendall = cor(engaj_total, engaj_mediano_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total + engaj_mediano_retweet", pearson = cor(engaj_total, engaj_mediano_retweet, method = "pearson"), spearman = cor(engaj_total, engaj_mediano_retweet, method = "spearman"), kendall = cor(engaj_total, engaj_mediano_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total + engaj_max", pearson = cor(engaj_total, engaj_max, method = "pearson"), spearman = cor(engaj_total, engaj_max, method = "spearman"), kendall = cor(engaj_total, engaj_max, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total + engaj_max_proprio", pearson = cor(engaj_total, engaj_max_proprio, method = "pearson"), spearman = cor(engaj_total, engaj_max_proprio, method = "spearman"), kendall = cor(engaj_total, engaj_max_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total_proprio + engaj_total_retweet", pearson = cor(engaj_total_proprio, engaj_total_retweet, method = "pearson"), spearman = cor(engaj_total_proprio, engaj_total_retweet, method = "spearman"), kendall = cor(engaj_total_proprio, engaj_total_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total_proprio + engaj_mediano", pearson = cor(engaj_total_proprio, engaj_mediano, method = "pearson"), spearman = cor(engaj_total_proprio, engaj_mediano, method = "spearman"), kendall = cor(engaj_total_proprio, engaj_mediano, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total_proprio + engaj_mediano_proprio", pearson = cor(engaj_total_proprio, engaj_mediano_proprio, method = "pearson"), spearman = cor(engaj_total_proprio, engaj_mediano_proprio, method = "spearman"), kendall = cor(engaj_total_proprio, engaj_mediano_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total_proprio + engaj_mediano_retweet", pearson = cor(engaj_total_proprio, engaj_mediano_retweet, method = "pearson"), spearman = cor(engaj_total_proprio, engaj_mediano_retweet, method = "spearman"), kendall = cor(engaj_total_proprio, engaj_mediano_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total_proprio + engaj_max", pearson = cor(engaj_total_proprio, engaj_max, method = "pearson"), spearman = cor(engaj_total_proprio, engaj_max, method = "spearman"), kendall = cor(engaj_total_proprio, engaj_max, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total_proprio + engaj_max_proprio", pearson = cor(engaj_total_proprio, engaj_max_proprio, method = "pearson"), spearman = cor(engaj_total_proprio, engaj_max_proprio, method = "spearman"), kendall = cor(engaj_total_proprio, engaj_max_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total_retweet + engaj_mediano", pearson = cor(engaj_total_retweet, engaj_mediano, method = "pearson"), spearman = cor(engaj_total_retweet, engaj_mediano, method = "spearman"), kendall = cor(engaj_total_retweet, engaj_mediano, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total_retweet + engaj_mediano_proprio", pearson = cor(engaj_total_retweet, engaj_mediano_proprio, method = "pearson"), spearman = cor(engaj_total_retweet, engaj_mediano_proprio, method = "spearman"), kendall = cor(engaj_total_retweet, engaj_mediano_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total_retweet + engaj_mediano_retweet", pearson = cor(engaj_total_retweet, engaj_mediano_retweet, method = "pearson"), spearman = cor(engaj_total_retweet, engaj_mediano_retweet, method = "spearman"), kendall = cor(engaj_total_retweet, engaj_mediano_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total_retweet + engaj_max", pearson = cor(engaj_total_retweet, engaj_max, method = "pearson"), spearman = cor(engaj_total_retweet, engaj_max, method = "spearman"), kendall = cor(engaj_total_retweet, engaj_max, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_total_retweet + engaj_max_proprio", pearson = cor(engaj_total_retweet, engaj_max_proprio, method = "pearson"), spearman = cor(engaj_total_retweet, engaj_max_proprio, method = "spearman"), kendall = cor(engaj_total_retweet, engaj_max_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_mediano + engaj_mediano_proprio", pearson = cor(engaj_mediano, engaj_mediano_proprio, method = "pearson"), spearman = cor(engaj_mediano, engaj_mediano_proprio, method = "spearman"), kendall = cor(engaj_mediano, engaj_mediano_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_mediano + engaj_mediano_retweet", pearson = cor(engaj_mediano, engaj_mediano_retweet, method = "pearson"), spearman = cor(engaj_mediano, engaj_mediano_retweet, method = "spearman"), kendall = cor(engaj_mediano, engaj_mediano_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_mediano + engaj_max", pearson = cor(engaj_mediano, engaj_max, method = "pearson"), spearman = cor(engaj_mediano, engaj_max, method = "spearman"), kendall = cor(engaj_mediano, engaj_max, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_mediano + engaj_max_proprio", pearson = cor(engaj_mediano, engaj_max_proprio, method = "pearson"), spearman = cor(engaj_mediano, engaj_max_proprio, method = "spearman"), kendall = cor(engaj_mediano, engaj_max_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_mediano_proprio + engaj_mediano_retweet", pearson = cor(engaj_mediano_proprio, engaj_mediano_retweet, method = "pearson"), spearman = cor(engaj_mediano_proprio, engaj_mediano_retweet, method = "spearman"), kendall = cor(engaj_mediano_proprio, engaj_mediano_retweet, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_mediano_proprio + engaj_max", pearson = cor(engaj_mediano_proprio, engaj_max, method = "pearson"), spearman = cor(engaj_mediano_proprio, engaj_max, method = "spearman"), kendall = cor(engaj_mediano_proprio, engaj_max, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_mediano_proprio + engaj_max_proprio", pearson = cor(engaj_mediano_proprio, engaj_max_proprio, method = "pearson"), spearman = cor(engaj_mediano_proprio, engaj_max_proprio, method = "spearman"), kendall = cor(engaj_mediano_proprio, engaj_max_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_mediano_retweet + engaj_max", pearson = cor(engaj_mediano_retweet, engaj_max, method = "pearson"), spearman = cor(engaj_mediano_retweet, engaj_max, method = "spearman"), kendall = cor(engaj_mediano_retweet, engaj_max, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_mediano_retweet + engaj_max_proprio", pearson = cor(engaj_mediano_retweet, engaj_max_proprio, method = "pearson"), spearman = cor(engaj_mediano_retweet, engaj_max_proprio, method = "spearman"), kendall = cor(engaj_mediano_retweet, engaj_max_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr_2 = dados %>% summarise(correlacao = "engaj_max + engaj_max_proprio", pearson = cor(engaj_max, engaj_max_proprio, method = "pearson"), spearman = cor(engaj_max, engaj_max_proprio, method = "spearman"), kendall = cor(engaj_max, engaj_max_proprio, method = "kendall"))
+corr = rbind(corr,corr_2)
+corr = corr %>% arrange(pearson)
+corr
+corr = corr %>% arrange(spearman)
+corr
+corr = corr %>% arrange(kendall)
+corr
+```
+
+### 2 — Quando mais tweet próprio mais engajamento próprio?
+
+  Será que se um político tweetar mais isso significa que ele tem mais participação nos seus próprios tweets?
+
+```{r warning=FALSE, error=FALSE, message = FALSE}
+corr = dados %>%
+  summarise(pearson = cor(n_proprio, engaj_total_proprio, method = "pearson"),
+  spearman = cor(n_proprio, engaj_total_proprio, method = "spearman"),
+  kendall = cor(n_proprio, engaj_total_proprio, method = "kendall"))
+
+vis = dados %>%
+  ggplot(mapping = aes(n_proprio, engaj_total_proprio)) +
+  geom_point(alpha=.4, color = "#D81159") +
+  scale_x_log10() +
+  scale_y_log10() +
+  geom_smooth(aes( group = 1 ), colour = "#218380")
+
+ggplotly(vis)
+
+corr
+```
+
+  Através do gráfico, nota-se que, além de monotônica e positiva, há uma correlação linear moderada e relação logaritmica forte, como evidenciados nos cálculos de person e spearman respectivamente.
+  
+### 3 — Quando mais retweetar mais engajamento ele terá em retweets??
+
+  Será que se um político retweetar mais isso significa que ele tem mais participação nos retweets?
+  
+```{r warning=FALSE, message = FALSE, error=FALSE}
+
+corr = dados %>%
+  summarise(pearson = cor(n_retweet, engaj_total_retweet, method = "pearson"),
+  spearman = cor(n_retweet, engaj_total_retweet, method = "spearman"),
+  kendall = cor(n_retweet, engaj_total_retweet, method = "kendall"))
+
+vis = dados %>%
+  ggplot(mapping = aes(n_retweet, engaj_total_retweet)) +
+  geom_point(alpha=.4, color = "#FFC857") +
+  scale_x_log10() +
+  scale_y_log10() +
+  geom_smooth(aes( group = 1 ), colour = "#084C61")
+
+ggplotly(vis)
+
+corr
+```
+
+  No gráfico, pode-se ver que os dados estão dispostos de forma que não há muitos pontos fugindo à tendência geral. Com o cálculo de correlação, nota-se, através de pearson, que há uma correlação linear forte.

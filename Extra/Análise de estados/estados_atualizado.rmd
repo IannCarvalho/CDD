@@ -1,0 +1,315 @@
+---
+title: "Regressão Linear"
+author: "Iann Carvalho, Rebeca Beltr�o e Thiago Montenegro"
+date: "07 de junho de 2019"
+output:
+  html_document:
+    theme: flatly
+    df_print: paged
+    code_folding: "hide"
+    toc: yes
+    toc_depth: 5
+    toc_float:
+      collapsed: no
+  phtml_notebook:
+    toc: yes
+    toc_depth: 5
+    fig_width: 7
+css: r-markdown.css
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(openintro)
+library(tidyverse)
+theme_set(theme_bw())
+library(modelr)
+library(broom)
+library(GGally)
+library(plotly)
+library(dplyr)
+library(corrplot)
+library(MASS)
+```
+
+# Sobre os dados
+
+Diferente do Brasil, Cada um dos estados nos Estados Unidos está subdividido administrativamente em territórios chamados condados com exceção do Alasca, onde tais divisões são chamadas de distritos, e da Louisiana, onde são chamadas de paróquias. As responsabilidades e os poderes dos condados variam de Estado para Estado, mas eles são sempre divisões administrativas do Estado em questão. No Alasca, por exemplo, existem distritos organizados e não-organizados. Os distritos não-organizados não possuem nenhum poder, não passando de meras divisões de cunho estatístico. A grande maioria dos condados possui uma sede. Em muitos estados os condados são subdivididos em municipalidades ou em cidades e podem conter outras municipalidades independentes.
+
+A quase totalidade do território dos Estados Unidos é coberta pelos condados, com excepção de cerca de metade do Alasca, em que a administração é exercida directamente pela administração central. À parte este caso, os poderes, a dimensão e a população dos condados varia consideravelmente entre regiões e entre os vários Estados.
+
+Nesse caso, nós estamos interessados em analisar como os indicadores de educação (**hs_grad** e ** bachelors**) interferem nos indicadores de pobreza (**poverty**) no estados, considerando os condados de forma geral
+
+```{r warning=FALSE}
+data = data(countyComplete)
+countyComplete
+data = countyComplete %>%
+  dplyr::select(-name) %>% 
+  group_by(state) %>%
+  summarise_each(funs(mean))
+data
+```
+# 1. Análise Descritiva
+
+Vamos realizar a análise descritiva dos dados, que consiste em sumarizá-los e descreve-los. Dentre as variáveis dos nossos dados temos: idades abaixo de 18, acima de 65, raças e estados. Para cada uma delas vamos calcular o menor e maior valor, o primeiro e o terceiro quartil, a média e a mediana e para algumas variáveis indicar a quantidade de colunas NA. 
+
+```{r}
+summary(data)
+```
+
+## 1.1 Gráficos de Correlação
+
+Abaixo temos o gráfico de correlação entre todas as variáveis encontradas nos nossos dados.
+Na qual, os quadrantes em coloração azulada demonstra uma correlação mais acentuada entre as variáveis já em coloração avermelhada, uma correlação negativa entre as variáveis.
+
+```{r}
+data_without_na = 
+  data[sapply(data, function(x) !any(is.na(x)))] %>%
+  dplyr::select(-state)
+data_without_na = data_without_na[c(26,1:25,27:31)]
+corrplot(cor(data_without_na), diag = FALSE,
+         tl.cex = 0.5, method = "square", tl.col = "black", number.cex = .3, cl.lim = c(-100, 100), na.label = "o")
+```
+
+```{r}
+rbind(
+data %>%
+  summarise(correlação = "poverty -> hs_grad",
+            pearson = cor(hs_grad, poverty, method = "pearson"),
+            spearman = cor(hs_grad, poverty, method = "spearman"),
+            kendall = cor(hs_grad, poverty, method = "kendall")),
+data %>%
+  summarise(correlação = "poverty -> bachelors",
+            pearson = cor(bachelors, poverty, method = "pearson"),
+            spearman = cor(bachelors, poverty, method = "spearman"),
+            kendall = cor(bachelors, poverty, method = "kendall"))
+)
+```
+
+Através dos cálculos de correlação de Pearson, Spearman e Kendall, chegamos a conclusão que realmente há uma correlação fore e linear entre *poverty* e *hs_grad*, tendo em vista que o valor do cálculo de Pearson foi igual a -0.8463959 e que há uma moderada entre *poverty* e *bachelors*, tendo em vista que o valor do cálculo de Pearson foi igual a -0.5039665 e o de Spearman foi -0.6923077.
+
+## 1.2 Gráficos de Densidade e Histogramas
+
+```{r}
+densidade2 = data %>%
+  ggplot(aes(x = poverty)) +
+  geom_density(fill = "white", color = "aquamarine2") +
+  labs(x = "Pobreza (%)", y="Densidade")
+ggplotly(densidade2)
+histograma2 = data %>%
+  ggplot(aes(x = poverty)) +
+  geom_histogram(bins = 10, color = "aquamarine3", fill = "aquamarine2") +
+  labs(x = "Pobreza (%)", y="Contador")
+ggplotly(histograma2)
+```
+
+Os gráficos de Densidade e histograma abordam a variável da Pobreza medida na população, os dados apresentados, abordam um índice entre 8% a 25% de Pobreza, na qual, cerca de 11 condados apresentam índice de pobreza de 12% e 1 condado apresentando 25% de índice de pobreza, na qual, este é o maior índice de pobreza aprensentado nos gráficos.
+
+```{r}
+densidade = data %>%
+  ggplot(aes(x = hs_grad)) +
+  geom_density(fill = "white", color = "darkorchid2")  +
+  labs(x = "Terminou o médio (%)", y="Densidade")
+ggplotly(densidade)
+histograma = data %>%
+  ggplot(aes(x = hs_grad)) +
+  geom_histogram(bins = 10, color = "darkorchid3", fill = "darkorchid2")  +
+  labs(x = "Terminou o médio (%)", y="Contagem")
+ggplotly(histograma)
+```
+O Gráfico de Densidade e Histograma acima, abordam a variável grau de educação, na qual medimos o percentual de pessoas no nosso conjunto de dados que terminou o ensino médio, já é possivel notar um bom índice do grau de instrução da população, no nosso intervalo de [75%, 91%], sendo o maior número apresentado em nosso conjunto de dados, em média 87% da população terminou o ensino médio, cerca de 13 contados, e 2 condados apresentaram um índice médio acima de 90%.
+```{r}
+densidade3 = data %>%
+  ggplot(aes(x = bachelors)) +
+  geom_density(fill = "white", color = "goldenrod2")  +
+  labs(x = "Terminou o superior (%)", y="Densidade")
+ggplotly(densidade3)
+histograma3 = data %>%
+  ggplot(aes(x = bachelors)) +
+  geom_histogram(bins = 10, color = "goldenrod3", fill = "goldenrod2")  +
+  labs(x = "Terminou o superior (%)", y="Contagem")
+ggplotly(histograma3)
+```
+
+Como descrito nos cálculos e nos gráficos de densidade acima, a maior parcela dos estados tem 8% e 21% da sua população pobre, 80% a 91% com ensino média e 13% a 35% com ensino superior.
+
+## 1.3 Gráfico de dispersão
+
+Agora vamos gerar um gráfico de dispersão para analisar se há uma relação entre escolaridade e a pobreza em cada estado. Esse gráfico é iterativo, onde podemos utilizar o mouse para observar os valores de outras variáveis que compoem os pontos. 
+
+```{r}
+dispersao = data %>%
+  ggplot(mapping = aes(x = hs_grad, y = poverty, color = state, text = paste(
+        "<br>Estado:", state,
+        "<br>Educação:", hs_grad,
+        "<br>Pobreza:", poverty
+        ))) + 
+  geom_point(alpha = 0.4)  +
+  labs(x = "Terminou o médio (%)", y="Pobreza (%)")
+ggplotly(dispersao, tooltip = "text")  %>%
+  layout(showlegend=FALSE)
+```
+
+Como podemos observar, o gráfico de dispersão nos indica que existe uma correlação linear negativa e forte entre as variáveis, ou seja, enquanto uma variável aumenta a outra diminui consideravelmente. Isso nos aponta que quando a escolaridade cresce, a pobreza diminui consequentemente.
+
+# 2. ANOVA
+
+A ANOVA é um teste paramétrico (possui estimativas de parâmetros) utilizado quando o pesquisador deseja verificar se existem diferenças entre as médias de uma determinada variável (variável resposta) em relação a um tratamento com dois ou mais níveis categóricos (variável preditora).
+
+No nosso conjunto de dados, iremos realizar a diferença entre as médias da variável poverty e hs_grad.
+
+```{r}
+ANOVA = aov(poverty ~ hs_grad, data = data)
+summary(ANOVA)
+```
+
+
+Como o valor- p é menor que o nível de significância de 0,05, podemos concluir que existem diferenças significativas entre os grupos destacados com “***” no resumo do modelo.
+
+# 3. Definindo Melhor Modelo
+
+Para definir o melhor modelo, vamos calcular a regressão linear com uma variável usando a função "lm" do R, que nos garante um modelo de regressão linear usando as variaveis de pobreza e escolaridade.
+
+## 3.1. Stepwise, Backward, Foward
+```{r}
+fit1 <- lm(poverty ~ data$hs_grad + data$bachelors, data = data)
+fit2 <- lm(poverty ~ data$hs_grad, data = data)
+
+stepAIC(fit1,direction="backward")
+stepAIC(fit2,direction="forward",scope=list(upper=fit1,lower=fit2))
+stepAIC(fit2,direction="both",scope=list(upper=fit1,lower=fit2))
+```
+
+Sabendo que o método Backward faz o caminho oposto; incorpora inicialmente todas as variáveis e depois, por etapas, cada uma pode ser ou não eliminada, ao analisarmos, o nosso modelo, entre o conjunto de dados e a variável pobreza, na qual, é possível perceber através dos critérios de avaliação como AIC, Critério de Informação Akaike (AIC), que busca a máxima verossimilhança do nosso modelo e o RSS (Residual Squared Sum) que faz a análise da soma dos erros dos quadráticos nossos resíduos, assim é possivel entender como nosso modelo de regressão linear funciona com cada varíavel e as inferências causadas pelas mesmas
+
+A seleção Stepwise de Regressão Linear é  um teste F usado desde que os erros tenham distribuição normal.  Por exemplo, na regressão logística os erros seguem distribuição binomial e a significância é assegurada via Teste da Razão de Verossimilhança. Assim, em cada passo do procedimento a variável mais importante, em termos estatísticos, é aquela que produz a maior mudança no logaritmo da verossimilhança em relação ao modelo que não contém a variável. 
+
+Assim após a verificação da eliminação da variável, ou seja o nosso valor-p maior que nosso alpha, ajustamos o restante das nossas variáveis e verificamos no  teste da razão de verossimilhança, verificando as nossas próximas variáveis se serão menores que nosso alpha com a finalidade de entrarem ou não no nosso modelo.
+
+## 3.2 Regressão Linear com uma variável
+```{r}
+mod <- lm(poverty ~ hs_grad, data = data)
+tidy(mod, conf.int = TRUE)
+glance(mod)
+```
+o R^2 (r.squared) é dado pela formula: 1 - (SSresiduos/SStotal), na qual, SSresiduos é a soma dos quadrados dos residuos, sum squared residuals, na qual é dado pela diferença entre o valor previsto atráves do modelo criado e o residuo ao quadrado, SUM(Yi - Yî)^2.
+SStotal é a soma total dos quadrados, total sum squared, na qual, se desenharmos uma linha média nos nosso conjunto de dados e calculamos a diferenca entre o nosso valor real, Yi e a média que foi gerada Ymédia,
+assim temos a formula. SStotal = SUM(Yi - Ymédia) ^ 2.
+E como sabemos a formual do R^2, logo quanto ela for mais próxima de 1, melhor será o nosso modelo, o quão boa é nossa linha de regressão em relação a linha da média.
+E como o nosso valor do R^2 é de R^2 = 0.716386.
+
+O R^2 ajustado informa a porcentagem de variação explicada apenas pelas variáveis independentes que realmente afetam a variável dependente, o R^2 ajustado penalizará você por adicionar variáveis independentes (K na equação) que não se encaixam no modelo no nosso caso, já considerando a penalização o valor de R^2 ajustado é de 0.7105979.
+
+```{r}
+data %>%
+  add_predictions(model = mod) %>%
+  ggplot(mapping = aes(x = hs_grad, y = poverty)) + 
+  geom_point(color = "aquamarine3") + 
+  geom_line(aes(y = pred), colour = "brown3")  +
+  labs(x = "Terminou o médio (%)", y="Pobreza (%)")
+```
+
+Através de cálculos do R da regressão linear, chegamos a conclusão que no nosso modelo de regressão linear de função f(x) = a.x + b, o valor de b = 76.8583518 com IC[65.5634458, 88.1532578] e que o valor de a = -0.7366207 com IC[-0.8696785, -0.6035628] e que o valor de R², ou seja, a escolaridade tem uma interferência de 71,6386% na pobreza.
+
+## 3.3 Regressão Linear com Múltiplas Variáveis
+
+```{r}
+mod2 <- lm(poverty ~ hs_grad + bachelors, data = data)
+tidy(mod2, conf.int = TRUE)
+glance(mod2)
+```
+Ao adicionarmos a váriavel bachelors, que verifica o índice de pessoas que terminaram o ensino superior, ao percebermos o nosso R^2 ajustado, percebemos uma perca em relação ao modelo de poverty ~ hs_grad, na qual, ja abordamos acima que é a penalização do R^2 ajustado, por bachelors não ser uma variável tão expressiva, embora a perda seja pequena, ainda é uma perda, que é mostrada abaixo.
+
+Através de cálculos do R da regressão linear, chegamos a conclusão que no nosso modelo de regressão linear de função f(x) = a.x + b.x + c, o valor de c = 75.48716167 com IC[62.9106862, 88.06363716] e que o valor de a = -0.71354673	com IC[-0.8750017, -0.55209172] e para b = -0.02677713, com IC[-0.1310623, 0.07750805]
+e que o valor de R², ou seja, a escolaridade mais o índice de pessoas com bacharelado tem uma interferência de 71,79521% na pobreza.
+
+```{r}
+mod <- lm(poverty ~ hs_grad, data = data)
+tidy(mod, conf.int = TRUE)
+glance(mod)
+```
+
+
+```{r}
+data %>%
+  add_predictions(model = mod) %>%
+  ggplot(mapping = aes(x = hs_grad, y = poverty)) + 
+  geom_point(color = "deeppink3", alpha=.5) + 
+  geom_line(aes(y = pred), colour = "yellow2")  +
+  labs(x = "Terminou o médio (%)", y="Pobreza (%)")
+
+data %>%
+  add_predictions(model = lm(poverty ~ bachelors, data = data)) %>%
+  ggplot(mapping = aes(x = bachelors, y = poverty)) + 
+  geom_point(color = "greenyellow", alpha=.5) + 
+  geom_line(aes(y = pred), colour = "darkorchid4")+
+  labs(x = "Terminou o superior (%)", y="Pobreza (%)")
+```
+
+No nosso primeiro gráfico, temos o nosso modelo de regressão linear, na qual verificamos os índices de pobreza em relação à educação, na qual percebemos quanto maior o percentual de pessoas que terminou o ensino médio menor será o índice de pobreza.
+
+Já no segundo gráfico, é mostrado o nosso modelo de regressão linear é entre a relação de pobreza e o percentual de pessoas que terminou o ensino superior, na qual percebemos que quanto maior o percentual de pessoas com ensino superior menor será a pobreza, é perceptivel nesse modelo um grande número de outliers e resíduos.
+```{r}
+p <- plot_ly(data, x = ~bachelors, y = ~hs_grad, z = ~poverty,
+        marker = list(color = ~poverty, colorscale = c('#FFE1A1', '#683531'), showscale = TRUE)) %>%
+  add_markers() %>%
+  layout(scene = list(xaxis = list(title = 'Graduados em Ensino Superior'),
+                     yaxis = list(title = 'Graduados em Ensino Médio'),
+                     zaxis = list(title = 'Pobreza')),
+         annotations = list(
+           x = 1.13,
+           y = 1.05,
+           text = 'Pobreza',
+           xref = 'paper',
+           yref = 'paper',
+           showarrow = FALSE
+         ))
+ggplotly(p)
+```
+
+Através de cálculos do R da regressão linear, chegamos a conclusão que no nosso modelo de regressão linear de função f(x) = ax + by + c, o valor de c = 75.48716167 com IC[62.9106862, 88.06363716], que o valor de a = -0.71354673 com IC[-0.8750017, -0.55209172], que o valor de b = -0.02677713 com IC[-0.1310623	0.07750805] e que o valor de R², ou seja, a escolaridade tem uma interferência de 71,79521% na pobreza
+
+# 4. Análise de Resíduos
+
+A seguir vamos realizar a análise de resíduos da nossa regressão. O intuito dessa analise é investigar as caracteristicas que comprometem a validade da nossa regressão, as quantidades da equação que a regressão não consegue explicar. 
+
+```{r}
+residuos = fortify(mod)
+rbind(summary(residuos$poverty),summary(residuos$.fitted),summary(residuos$.resid))
+residuos %>%
+  add_predictions(model = mod) %>%
+  ggplot(mapping = aes(x = hs_grad, y = poverty, color = .resid)) + 
+  geom_point() + 
+  geom_line(aes(y = pred), colour = "turquoise") +
+  scale_color_gradient2(midpoint=0, low="#dd1c77", mid="#e7e1ef",
+                     high="#dd1c77", space ="Lab")+
+  labs(x = "Terminou o médio (%)", y="Pobreza (%)")
+residuos %>%
+  ggplot(aes(x=.fitted, y=.resid, color = .resid))+
+  geom_point(color = "darkorange2")+
+  geom_hline(yintercept = 0, color = "blueviolet") +
+  scale_color_gradient2(midpoint=0, low="#dd1c77", mid="#e7e1ef",
+                     high="#dd1c77", space ="Lab" ) +
+  labs(y="Resíduos") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+Através de cálculos do R de resíduos, chegamos a conclusão que os valores previstos foram bem próximos e tendo em vista que até os valores Min e Max dos resíduos foram baixos (-3.740981 e 5.359336, respectivamente)
+
+# 6. Conclusão
+
+```{r}
+escolaridade_ficticia <- data.frame(hs_grad = seq(75, 95, 0.5))
+pred = predict(mod, escolaridade_ficticia, se.fit = TRUE)
+pred.w.plim <- predict(mod, escolaridade_ficticia, interval = "prediction")
+escolaridade_ficticia <- cbind(escolaridade_ficticia, pred.w.plim)
+ggplot(escolaridade_ficticia, aes(x=hs_grad, y=fit)) + 
+  geom_line(color = "SpringGreen")+
+  geom_pointrange(aes(ymin=lwr, ymax=upr), color = "MediumSeaGreen")+
+  geom_point(data=data, aes(x=hs_grad, y=poverty), color = "Orchid")+
+  labs(x = "Terminou o médio (%)", y="Pobreza / Pobreza Estimada (%)")
+  
+```
+
+Diante do que foi visto, podemos perceber que depois de uma boa análise e de uma garantia algébrica de forte correlação, chegamos a conclusão que podemos criar modelos de regressão linear baseados em escolaridade para definir a pobreza dos da média dos condados dos Estados Unidos por estado. Também foi possível perceber que quando há forte relação entre mais de uma variável podemos criar um modelo com múltiplas variáveis que define melhor o mundo através de uma função.

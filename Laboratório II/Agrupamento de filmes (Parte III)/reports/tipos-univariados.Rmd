@@ -1,0 +1,236 @@
+---
+title: "Tipos de filme de Al Pacino"
+author: "Iann Carvalho Barbosa"
+output:
+    html_document:
+        df_print: paged
+        toc: yes
+        toc_float: yes
+    html_notebook:
+        toc: yes
+        toc_float: yes
+theme: sandstone
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+library(cluster)
+library(ggdendro)
+library(plotly)
+library(broom)
+library(ggpubr)
+
+source(here::here("code/lib.R"))
+theme_set(theme_report())
+
+knitr::opts_chunk$set(tidy = FALSE,
+                      fig.width = 6,
+                      fig.height = 5,
+                      echo = TRUE)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+## ANTES DE USAR
+# Para criar data/movies.csv
+import_data("al_pacino") # ou com o ator/atriz que você escolher
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+filmes = read_imported_data()
+```
+
+## Descrição
+
+Alfredo James "Al" Pacino é um ator, produtor, roteirista e cineasta norte-americano de origem toda italiana. Conhecido, especialmente, por interpretar Michael Corleone na trilogia O Poderoso Chefão e Tony Montana em Scarface.
+
+Ganhou o Oscar de Melhor Ator no 65ª Prêmio da Academia por sua atuação como Frank Slade em Perfume de Mulher. Antes de sua vitória já havia recebido sete indicações ao Oscar, incluindo uma naquele mesmo ano.
+
+Fez sua estreia no cinema em 1969 no filme Me, Natalie em um papel menor de apoio, antes de atuar o papel principal no drama The Panic in Needle Park, de 1971. O grande avanço de sua carreira veio em 1972, com o papel de Michael Corleone em The Godfather, que lhe rendeu uma indicação ao Oscar de Melhor Ator Coadjuvante. Suas outras indicações ao Oscar de Melhor Ator Coadjuvante foram por Dick Tracy e Glengarry Glen Ross. Suas indicações ao Oscar de Melhor Ator Principal incluem The Godfather: Part II, Serpico, Dog Day Afternoon e ...And Justice for All.
+
+## Bilheteria por ano
+
+Foi possível perceber que existiram intervalos nos anos de atuação de Al Pacino e que um dos filmes teve a bilheteria muito maior que a dos outros. 
+
+```{r}
+filmes_ano =
+  filmes %>% 
+    ggplot(
+      aes(
+        x = ano,
+        y = bilheteria,
+        text = paste(
+          "Filme:", filme,
+          "<br>Papel:", papel,
+          "<br>Ano:", ano,
+          "<br>Bilheteria:", bilheteria
+        ))) +
+    xlab("Ano") +
+    ylab("Bilheteria") +
+    ggtitle("Gráfico de dispersão ano vs bilheteria") +
+    geom_point(size = 4, color = "turquoise", alpha=.5) 
+
+ggplotly(filmes_ano, tooltip = "text")
+```
+
+## Contagem de bilheteria
+
+Além de reforçar que um filme teve muito mais bilheteria que os outros, mostra também que a maioria dos filmes dele foram feitos entre 3 e 75 milhões.
+
+```{r}
+contagem_bilheteria = 
+filmes %>% 
+    ggplot(
+      aes(
+        x = bilheteria
+        )) +
+    xlab("Bilheteria") +
+    ylab("Contagem") +
+    ggtitle("Histograma de contagem por bilheteria") +
+    geom_histogram(
+      binwidth = 15,
+      fill = "darkorchid1",
+      color = "darkorchid4",
+      alpha = .4
+      ) + 
+    geom_rug(size = .5)
+
+ggplotly(contagem_bilheteria)
+```
+
+## Contagem de bilheteria
+
+Fica evidente que apesar de existerem muitos filmes bem avaliados por Al Pacino, também existem muito mal avaliados.
+
+```{r}
+contagem_avaliacao =
+  filmes %>% 
+    ggplot(
+      aes(
+        x = avaliacao
+        )) +
+    xlab("Avaliação") +
+    ylab("Contagem") +
+    ggtitle("Histograma de contagem por avaliação") +
+    geom_histogram(
+      binwidth = 10,
+      boundary = 0,
+      fill = "cadetblue2",
+      color = "cadetblue4",
+      alpha= 0.5
+      ) + 
+    geom_rug(size = .5)
+
+ggplotly(contagem_avaliacao)
+```
+
+# Como agrupar os filmes do Al Pacino?
+
+## Normalização
+
+```{r}
+m_transformado = filmes %>% 
+    mutate(bilheteria_log = as.vector(scale(log10(bilheteria))), 
+           avaliacao_scaled = as.vector(scale(avaliacao)))
+
+summary(m_transformado %>% select(bilheteria_log, avaliacao_scaled))
+```
+## Como escolher em quantos grupos vou dividir?
+
+Para certificar de que se fez a melhor escolha de K, utilizou-se a função de "Gap Static Calculation" e uma consideração da homogeniedade entre a distância dos pontos.
+
+```{r}
+plot_clusgap = function(clusgap, title = "Gap Statistic calculation results") {
+    require("ggplot2")
+    gstab = data.frame(clusgap$Tab, k = 1:nrow(clusgap$Tab))
+    p = ggplot(gstab, aes(k, gap)) + geom_line() + geom_point(size = 5)
+    p = p + geom_errorbar(aes(ymax = gap + SE.sim, ymin = gap - SE.sim), width = .2)
+    p = p + ggtitle(title)
+    return(p)
+}
+
+gaps <- m_transformado %>% 
+    select(bilheteria_log, avaliacao_scaled) %>% 
+    clusGap(FUN = kmeans, nstart = 20, K.max = 9, B = 200)
+
+plot_clusgap(gaps)
+```
+```{r}
+set.seed(123)
+explorando_k = tibble(k = 1:9) %>%
+    mutate(agrupamento = map(k, ~ kmeans(
+        select(m_transformado, bilheteria_log, avaliacao_scaled),
+        centers = .
+    ) %>% glance())) %>%
+    unnest(agrupamento)
+
+explorando_k %>% 
+    ggplot(aes(x = k, y = betweenss / totss)) + 
+    geom_line() + 
+    geom_point()
+```
+
+## Agrupamento
+
+Com dos algoritmos acima é perceptível que para um K igual 3 grupos temos um valor bastante interessante.
+
+
+```{r}
+n_clusters = 3
+
+cluster = m_transformado %>% 
+    select(bilheteria_log, avaliacao_scaled) %>% 
+    kmeans(centers = n_clusters, nstart = 20)
+
+agrupado = cluster %>% 
+    augment(m_transformado)
+
+avaliacao_bilheteria = agrupado %>% 
+    ggplot(
+      aes(
+        x = avaliacao,
+        y = bilheteria,
+        color = .cluster,
+        label=filme,
+        text = paste(
+          "Filme:", filme,
+          "<br>Papel:", papel,
+          "<br>Ano:", ano,
+          "<br>Avaliação:", avaliacao,
+          "<br>Bilheteria:", bilheteria
+        ))) + 
+    geom_point(size = 3)+
+    scale_y_log10() + 
+    scale_color_brewer(palette = "Set2")+
+    xlab("Avaliação") +
+    ylab("Bilheteria")
+
+ggplotly(avaliacao_bilheteria, tooltip = "text")
+
+ggscatter(
+  agrupado,
+  x="avaliacao",
+  y="bilheteria",
+  color=".cluster"
+  ) +
+  stat_chull(
+    aes(
+      fill = .cluster
+      ),
+    alpha=0.3,
+    geom="polygon"
+    )+
+  xlab("Avaliação")+
+  ylab("Bilheteria")  + 
+  scale_color_brewer(palette = "Dark2")  + 
+  scale_fill_brewer(palette = "Dark2")
+```
+
+Podemos perceber a presença de 3 grupos de filmes:
+
+* Grupo em Azul: Grupo daqueles que possui uma bilheteria média ou baixa e uma avaliação média ou, na maioria dos casos, baixa.
+
+* Grupo em Verde: Tanto bilheteria quanto avaliação são altos. 
+
+* Gurpo em Vermelho/Laranja/Marrom: Avaliação média e alta, mas bilheteria baixa ou média

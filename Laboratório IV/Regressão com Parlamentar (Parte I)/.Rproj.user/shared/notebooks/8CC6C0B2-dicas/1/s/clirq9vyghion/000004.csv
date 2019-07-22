@@ -1,0 +1,3 @@
+"0","atividade %>% "
+"0","  mutate(tuitou = !is.na(twitter) & (n_proprio + n_retweet > 0)) %>% "
+"0","  summarise(proporcao_ativa = sum(tuitou) / n()) # n diz o número de linhas do grupo"

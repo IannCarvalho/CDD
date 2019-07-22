@@ -1,0 +1,3 @@
+"0","atividade = read_projectdata()"
+"0","atividade = atividade %>% "
+"0","  filter(seguidores > 0, n_proprio > 0, n_retweet > 0)"

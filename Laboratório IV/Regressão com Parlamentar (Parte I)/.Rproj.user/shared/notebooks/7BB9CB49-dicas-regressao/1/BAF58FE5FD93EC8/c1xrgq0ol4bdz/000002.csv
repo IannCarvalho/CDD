@@ -1,0 +1,3 @@
+"0","atividade %>% "
+"0","  ggplot(aes(x = n_proprio, y = seguidores)) + "
+"0","  geom_point()"

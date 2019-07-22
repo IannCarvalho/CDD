@@ -1,0 +1,3 @@
+"0","atividade %>% "
+"0","  mutate(tem_twitter = !is.na(twitter)) %>% "
+"0","  summarise(proporcao_com_twitter = sum(tem_twitter) / n()) # n diz o número de linhas do grupo"

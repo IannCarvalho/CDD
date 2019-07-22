@@ -1,0 +1,3 @@
+"0","ggplot(data = atividade, aes(x = n_proprio_log)) + "
+"0","  geom_point(aes(y = seguidores_log)) + "
+"0","  geom_line(data = para_plotar_modelo, aes(y = pred), color = ""orange"", size = 1.5)"

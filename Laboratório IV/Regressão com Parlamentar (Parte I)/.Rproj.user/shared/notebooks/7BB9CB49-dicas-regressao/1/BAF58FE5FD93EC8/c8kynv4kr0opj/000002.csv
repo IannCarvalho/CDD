@@ -1,0 +1,4 @@
+"0","atividade = atividade %>% "
+"0","  mutate(seguidores_log = log10(seguidores), "
+"0","         n_proprio_log = log10(n_proprio), "
+"0","         n_retweet_log = log10(n_retweet))"

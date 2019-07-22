@@ -1,0 +1,16 @@
+"0","ne_no_twitter = atividade %>%"
+"0","  filter(UF %in% c(""PB"", ""PE"", ""RN"", ""BA"", ""CE"", ""MA"", ""PI"", ""SE"", ""AL""),"
+"0","         !is.na(seguidores)) "
+"0","  "
+"0","ne_sumario = ne_no_twitter %>% "
+"0","  group_by(UF) %>% "
+"0","  summarise(media = mean(seguidores))"
+"0","glimpse(ne_sumario)"
+"1","Observations: 9
+"
+"1","Variables: 2
+"
+"1","$ UF    [3m[38;5;246m<chr>[39m[23m ""AL"", ""BA"", ""CE"", ""MA"", ""PB"", ""PE"", ""PI"", ""RN"", ""SE""
+"
+"1","$ media [3m[38;5;246m<dbl>[39m[23m 27661.000, 13964.471, 18376.692, 6464.214, 11964.375, 18175.364, 4383.375, 15781.167, 6170.333
+"

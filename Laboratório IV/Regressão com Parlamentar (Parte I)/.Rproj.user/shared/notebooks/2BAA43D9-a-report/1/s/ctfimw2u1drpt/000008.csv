@@ -1,0 +1,5 @@
+"0","atividade %>% "
+"0","  ggplot(aes(x = n_retweet, y = engaj_total)) + "
+"0","  geom_point() + "
+"0","  scale_y_log10() + "
+"0","  scale_x_log10()"

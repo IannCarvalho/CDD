@@ -1,0 +1,8 @@
+"0","atividade %>%"
+"0","  filter(!is.na(seguidores)) %>%"
+"0","  group_by(UF) %>%"
+"0","  summarise(mediana_seguidores = median(seguidores)) %>% "
+"0","  ggplot(aes(x = reorder(UF, mediana_seguidores), y = mediana_seguidores)) +"
+"0","  geom_point() +"
+"0","  labs(x = ""UF do parlamentar"","
+"0","       y = ""Mediana de seguidores dos parlamentares"")"

@@ -1,0 +1,159 @@
+---
+title: "Politicagem Tuiteira"
+author: "Iann Carvalho" 
+output:
+    html_document:
+    df_print: paged
+theme: sandstone
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(plotly)
+library(dplyr)
+source(here::here("code/lib.R"))
+theme_set(theme_bw())
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+atividade = read_projectdata()
+```
+
+  Atualmente no cenário político, a forma mais simples e acessível para os deputados e senadores conquistarem a confiança do eleitorado brasileiro é através dos meios comunicação por serem geralmente ambientes de lazer, gratuitos e informais.
+  
+  O Twitter, especificamente, é um ambiente com fácil coletada de dados decorrente da simplicidade da interface, além de ser um meio de comunicação que está ligado à grandes polémicas do atual cenário político. Sabendo disso, mostra-se relevante entender melhor, através análises e visualizações de dados, o comportamento do nosso atual Congresso Nacional brasileiro nesse meio.
+
+1.1 - Quais são os 10 partidos mais ativos no Twitter
+
+1.2 - Quais os partidos mais populares do Twitter?
+
+2.1 - Qual a casa mais ativa?
+
+2.2 - Quais são os políticos mais ativos de cada casa?
+
+## Preparação do Ambiente
+
+  Para as análises apresentadas a seguir, foram utilizadas as bibliotecas **tidyverse**, **ggplot2** e **dplyr**. Os dados usados para essa análise, foram:
+
+```{r}
+glimpse(atividade)
+```
+
+## Análise dos dados
+
+### 1.1 — Quais são os 10 partidos mais ativos no Twitter?
+
+  A métrica escolhida para contabilizar os 10 partidos mais ativos no Twitter foi a soma do número de tweets e retweets de cada político. Tendo conhecimento que, grande parte de cada casa é composta por políticos do mesmo partido e que existem muitos **outliers**, decidiu-se utilizar a soma das medianas para definir qual partido é mais ativo.
+
+```{r warning=FALSE}
+dados1 = atividade %>%
+          group_by(partido) %>%
+          summarise(participacao = median(n_retweet, na.rm = TRUE) + median(n_proprio, na.rm = TRUE), n_retweet=median(n_retweet, na.rm = TRUE), n_proprio = median(n_proprio, na.rm = TRUE)) %>%
+          top_n(10, participacao)
+
+vis1 = dados1 %>% 
+        ggplot(aes(x= reorder(partido, participacao), y= participacao,fill = partido, alpha = .4, text = paste("Partido:", partido, "<br>Número de tweets:", n_proprio, "<br>Número de retweets:", n_retweet))) +
+        geom_col(show.legend = FALSE) +
+        xlab("Partido") +
+        ylab("Participação") +
+        ggtitle("10 partidos mais ativos") +
+        coord_flip() +
+        scale_fill_brewer(palette = "Set3")
+          
+ggplotly(vis1, tooltip = c("text"))
+```
+
+  Através da visualização, ficou claro que o partido que é constantemente mais ativo no twitter, é o PSOL.
+
+### 1.2 — Quais os partidos mais populares do Twitter?
+
+  Diante do questionamento anterior, mostrou-se relevante definir a popularidade dos partidos políticos para tentar explicar porque alguns partidos são tão mais ativos que outros. Para isso, usou-se as medianas de quem segue e de quem é seguido pelo político.
+
+
+```{r warning=FALSE}
+dados1_2_1 = atividade %>%
+            group_by(partido) %>%
+            filter(partido != "S/Partido") %>%
+            summarise(n = median(seguidores, na.rm = TRUE), tipo =  "seguidores")
+
+dados1_2_2 = atividade %>%
+            group_by(partido) %>%
+            filter(partido != "S/Partido") %>%
+            summarise(n = median(segue, na.rm = TRUE), tipo = "segue")
+
+dados1_2 = rbind(dados1_2_1, dados1_2_2) %>%
+            filter(!is.na(n))
+
+vis1_2 = dados1_2 %>%
+        ggplot(mapping = aes(x = partido, y = n, color = tipo, alpha = .4, text = paste ("Tipo:", tipo, "<br>Quantidade:", n))) +
+        geom_point() +
+        scale_y_continuous(label=scales::comma) +
+        ylab("Número de seguidores/seguindo") +
+        xlab("Paritdo") +
+        ggtitle("Partidos por quem segue e seguidores") +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplotly(vis1_2, tooltip = c("text"))
+
+```
+
+  Com o gráfico de pontos, foi possível perceber um resultado bem diferente resultado do PSOL em relação aos outros partidos político em questão quantidade de seguidores.
+  
+### 2.1 — Qual a casa mais ativa?
+
+  Considerando que a Câmara de Deputados tem 513 mais pessoas e que no senado federal tem 81, foi utilizado a soma das medianas do número de retweets e de tweets, em vez de considerar a soma do somatório do número de retweets e tweets.
+
+```{r warning=FALSE}
+
+dados2 = 
+  atividade %>%
+  group_by(casa) %>%
+  na.omit(engaj_mediano) %>%
+   summarise(participacao = median(n_retweet, na.rm = TRUE) + median(n_proprio, na.rm = TRUE), n_retweet=median(n_retweet, na.rm = TRUE), n_proprio = median(n_proprio, na.rm = TRUE))
+
+vis2 = dados2 %>% 
+  ggplot(aes(x= casa, y= participacao, fill = casa, alpha = .4, text = paste("Casa:", casa, "<br>Número de tweets:", n_proprio, "<br>Número de retweets:", n_retweet))) +
+  geom_col(show.legend = FALSE) +
+        xlab("Participação") +
+        ylab("Casa") +
+        ggtitle("Mediana da participação dos políticos por casa") +
+  scale_fill_brewer(palette = "Dark2")
+
+
+ggplotly(vis2, tooltip = "text")
+```
+
+  Perante a visualização, foi possível perceber que apesar dos números brutos a câmara mais **tweets** e **retweets**, proporcionalmente o senado é mais ativo.
+
+### 2.2 — Quais são os políticos mais ativos de cada casa?
+
+  Para definir cada político mais ativo em cada casa, diferente das outras análises, foram utilizados números brutos, já que estamos trabalhando com cada deputado/senador por vez, tornando-se assim, desnecessário fazer somatórios, médias ou medianas.
+
+```{r warning=FALSE}
+dados2_2_1 = atividade %>%
+          mutate(participacao = n_retweet + n_proprio, na.rm = TRUE) %>%
+          filter(casa == "câmara") %>%
+          top_n(10, participacao)
+
+vis2_2_1 = dados2_2_1 %>% 
+        ggplot(aes(x= reorder(nome_eleitoral,participacao), y= participacao,fill = nome_eleitoral, alpha = .4, text = paste("Casa:", casa, "<br>Número de tweets:", n_proprio, "<br>Número de retweets:", n_retweet))) +
+        geom_col(show.legend = FALSE) +
+        coord_flip() +
+        scale_fill_brewer(palette = "Set3")
+
+dados2_2_2 = atividade %>%
+          mutate(participacao = n_retweet + n_proprio, na.rm = TRUE) %>%
+          filter(casa == "senado") %>%
+          top_n(10, participacao)
+
+vis2_2_2 = dados2_2_2 %>% 
+        ggplot(aes(x= reorder(nome_eleitoral,participacao), y= participacao,fill = nome_eleitoral, alpha = .4, text = paste("Casa:", casa, "<br>Número de tweets:", n_proprio, "<br>Número de retweets:", n_retweet))) +
+        geom_col(show.legend = FALSE) +
+        ggtitle("10 políticos mais ativos") +
+        coord_flip() +
+        scale_fill_brewer(palette = "Set3")
+          
+subplot(ggplotly(vis2_2_1, tooltip = c("text")), ggplotly(vis2_2_2, tooltip = c("text")), nrows = 2)
+```
+
+  Perante os gráficos, foi possível perceber que tanto Bacelar, na Câmara de deputados, quanto Álvaro Dias, Humberto Costa, Jorge Kajuru e Lasier Martins, no Senado Federal, são muito mais ativos que os demais.

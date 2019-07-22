@@ -1,0 +1,148 @@
+---
+title: "Comentários e cultura"
+output:
+    html_document:
+    df_print: paged
+theme: sandstone
+---
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+library(plotly)
+source(here::here("code/import_data.R"))
+theme_set(theme_bw())
+
+knitr::opts_chunk$set(tidy = FALSE,
+                      fig.width = 6,
+                      fig.height = 5)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+dados = read_csv(
+    here::here("data/participation-per-country.csv"),
+    col_types = cols(
+        .default = col_double(),
+        site = col_character(),
+        country = col_character(),
+        geo = col_character(),
+        four_regions = col_character(),
+        eight_regions = col_character(),
+        six_regions = col_character(),
+        `World bank income group 2017` = col_character()
+    )
+) %>% 
+    filter(usuarios > 200)
+glimpse(dados)
+```
+
+Estamos interessados na relação entre quanto as pessoas de diferentes países comentam em questões dos outros. A proporção das pessoas do país que comentou nas questões de outros está medido na variável `comentaram_prop`. 
+
+Considerando essa variável, queremos examinar a relação entre ela e o quão hierárquicas são as relações em um país (`PDI`). Queremos também levar em conta o quanto as pessoas daquele país têm acesso à Internet (`Internet`) e qual o tamanho da base de dados que detectamos daquele país (`usuarios`). 
+
+## Examinando essa relação
+
+Faça uma visualização que usa os princípios de eficácia no projeto de visualizações para facilitar as comparações que você acha que são as mais importantes para entendermos esse contexto. 
+
+```{r warning=FALSE, error=FALSE, message = FALSE}
+dados %>%
+  ggplot(
+      mapping = aes(
+          x = Internet, 
+          y = PDI, 
+          alpha = comentaram_prop,
+          size = usuarios
+          )) +
+  geom_point(color = "#D81159")
+```
+
+## Outras formas de ver
+
+Em seguida, faça 5 visualizações que usem as mesmas variáveis e também pontos, mas que sejam **menos eficazes** que a que você escolheu acima. 
+
+### Menos legal
+
+```{r warning=FALSE, error=FALSE, message = FALSE}
+dados %>%
+    ggplot(
+        mapping = aes(
+            x = comentaram_prop, 
+            y = usuarios, 
+            size = Internet, 
+            color = PDI
+            )) +
+    geom_point() +
+    scale_colour_gradientn(colours = terrain.colors(10))
+```
+
+```{r warning=FALSE, error=FALSE, message = FALSE}
+dados %>%
+    ggplot(
+        mapping = aes(
+            x = usuarios, 
+            y = Internet, 
+            size = comentaram_prop, 
+            alpha = PDI 
+            )) +
+    geom_point(color = "#D33E43") + 
+    scale_x_continuous(labels = scales::comma)
+```
+
+```{r warning=FALSE, error=FALSE, message = FALSE}
+dados %>%
+    ggplot(
+        mapping = aes(
+            x = comentaram_prop,
+            y = usuarios,
+            size = Internet,
+            alpha = PDI
+            )) +
+    geom_point(color = "#C2F9BB") + 
+    scale_y_log10(labels = scales::comma)
+```
+
+```{r warning=FALSE, error=FALSE, message = FALSE}
+dados %>%
+    ggplot(
+        mapping = aes(
+            x = comentaram_prop,
+            y = Internet,
+            size = usuarios,
+            alpha = PDI
+            )) +
+    geom_point(color = "#E59500")
+```
+
+```{r warning=FALSE, error=FALSE, message = FALSE}
+dados %>%
+    ggplot(
+        mapping = aes(
+            x = usuarios,
+            y = PDI,
+            size = Internet,
+            color = comentaram_prop)) +
+    geom_point() +
+    scale_x_continuous(labels = scales::comma)
+```
+
+## Bônus
+
+Inclua o continente dos países (`six_regions`) na visualização.
+
+```{r warning=FALSE, error=FALSE, message = FALSE}
+ggplotly(
+    dados %>%
+        ggplot(
+            mapping = aes(
+                x = Internet,
+                y = PDI,
+                size = usuarios,
+                alpha = comentaram_prop,
+                shape = six_regions,
+                color = six_regions,
+                text = paste("Site:", site,"<br>País:", country, "<br>Continente:", six_regions,"<br>Usuários:", usuarios,"<br>Internet:", Internet, "<br>PDI:", PDI, "<br>Quantidade Comentários:", comentaram_prop
+                ))) +
+        geom_point() +
+        scale_color_brewer(palette = "Set1"),
+    tooltip = c("text")
+)
+```

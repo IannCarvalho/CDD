@@ -1,0 +1,234 @@
+---
+title: "Dicas de visualização"
+output:
+    html_document:
+        code_folding: "hide"
+        theme: sandstone
+    df_print: paged
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(hrbrthemes)
+
+knitr::opts_chunk$set(tidy = FALSE,
+                      fig.width = 6,
+                      fig.height = 5)
+
+theme_set(theme_ipsum())
+```
+
+Usaremos nos exemplos os dados [deste repositório](https://github.com/nazareno/enade-vis) sobre as respostas dos formandos em Computação em 2017 no Brasil sobre seus cursos. 
+
+```{r read}
+respostas = read_csv(here::here("data/enade-ccc-2017.csv"),
+                     col_types = "cccdccdddc")
+
+medias = respostas %>% 
+    filter(categoria != "Outros") %>% 
+    group_by(UF, categoria) %>% 
+    summarise(media = mean(media))
+```
+
+## Dica 1: Ordene as categorias
+
+Compare como você consegue perceber diferenças nas médias nessa visualização
+
+```{r}
+respostas %>%
+    filter(categoria == "Infraestrutura") %>%
+    ggplot(aes(x = UF, y = media)) +
+    geom_jitter(width = .1, alpha = .2) +
+    geom_point(
+        data = filter(medias, categoria == "Infraestrutura"),
+        color = "orange",
+        shape = 15,
+        size = 3
+    ) +
+    labs(
+        x = "UF do curso",
+        y = "Avaliação numa escala de 1 a 6",
+        title = "Notas nas respostas de Infraestrutura",
+        subtitle = "Quadrados são a média da UF.",
+        caption = "Apenas cursos de CC com pelo menos 20 respostas"
+    )
+```
+
+E nessa: 
+
+```{r}
+respostas %>%
+    filter(categoria == "Infraestrutura") %>%
+    ggplot(aes(x = reorder(UF, media), y = media)) +
+    geom_jitter(width = .1, alpha = .2) +
+    geom_point(
+        data = filter(medias, categoria == "Infraestrutura"),
+        color = "orange",
+        shape = 15,
+        size = 3
+    ) +
+    labs(
+        x = "UF do curso",
+        y = "Avaliação numa escala de 1 a 6",
+        title = "Notas nas respostas de Infraestrutura",
+        subtitle = "Quadrados são a média da UF.",
+        caption = "Apenas cursos de CC com pelo menos 20 respostas"
+    )
+```
+
+A ordenação deve ser pelo critério cuja comparação você quer facilitar. 
+
+```{r}
+respostas %>%
+    filter(categoria == "Infraestrutura") %>%
+    ggplot(aes(x = reorder(UF, media, sd), y = media)) +
+    geom_jitter(width = .1, alpha = .2) +
+    labs(
+        x = "UF do curso",
+        y = "Avaliação numa escala de 1 a 6",
+        title = "Notas nas respostas de Infraestrutura",
+        subtitle = "Ordenação pela dispersão",
+        caption = "Apenas cursos de CC com pelo menos 20 respostas"
+    )
+
+respostas %>%
+    filter(categoria == "Infraestrutura") %>%
+    ggplot(aes(x = reorder(UF, media, max), y = media)) +
+    geom_jitter(width = .1, alpha = .2) +
+    labs(
+        x = "UF do curso",
+        y = "Avaliação numa escala de 1 a 6",
+        title = "Notas nas respostas de Infraestrutura",
+        subtitle = "Ordenação pelo máximo",
+        caption = "Apenas cursos de CC com pelo menos 20 respostas"
+    )
+```
+
+## Dica 2: Mostre o contexto
+
+Veja como perdemos informação sobre CE, PE, PI e GO se mostramos apenas a média. Informação de quantidade de casos, informação de pontos extremos e informação sobre dispersão e localização de grupos de pontos.
+
+```{r}
+respostas %>%
+    filter(categoria == "Infraestrutura") %>%
+    ggplot(aes(x = reorder(UF, media), y = media)) +
+    geom_point(
+        data = filter(medias, categoria == "Infraestrutura"),
+        color = "orange",
+        shape = 15,
+        size = 3
+    ) +
+    ylim(2, 6) + 
+    labs(
+        x = "UF do curso",
+        y = "Avaliação numa escala de 1 a 6",
+        title = "Notas nas respostas de Infraestrutura",
+        subtitle = "Quadrados são a média da UF.",
+        caption = "Apenas cursos de CC com pelo menos 20 respostas"
+    )
+```
+
+## Dica 3: Se há muitas categorias, use cor para *destacar*
+
+Nós não conseguimos distinguir mais que 6-9 cores. E mesmo assim é lento. Veja só: 
+
+```{r fig.height=16, fig.width=6}
+respostas %>%
+    filter(categoria != "Outros") %>%
+    ggplot(aes(x = reorder(tema, media), y = media, color = IES)) +
+    geom_jitter(width = .1, alpha = .75) + 
+    labs(
+        x = "",
+        y = "Avaliação numa escala de 1 a 6",
+        title = "Todas as respostas",
+        subtitle = "Cada IES com uma cor"
+    ) + 
+    facet_grid(reorder(categoria, media) ~ ., scales = "free_y") + 
+    theme(legend.position = "bottom") + 
+    coord_flip()
+```
+
+Se o que queremos é entender uma instituição específica: 
+
+```{r fig.height=12, fig.width=6}
+dados_pro_plot = respostas %>%
+    filter(categoria != "Outros") %>% 
+    mutate(is_ufcg = IES == "UFCG") 
+dados_pro_plot %>% 
+    filter(!is_ufcg) %>% 
+    ggplot(aes(x = reorder(tema, media), y = media)) +
+    geom_jitter(width = .1, color = "grey", alpha = .5) + 
+    geom_point(data = dados_pro_plot %>% filter(is_ufcg), 
+               color = "red", 
+               size = 2) + 
+    labs(
+        x = "",
+        y = "Avaliação numa escala de 1 a 6",
+        title = "Avaliação dos formandos em todas as perguntas",
+        subtitle = "Destaque para a UFCG"
+    ) + 
+    facet_grid(reorder(categoria, media) ~ ., scales = "free_y") + 
+    coord_flip()
+```
+
+## O que interessa é o valor ou a diferença?
+
+```{r}
+medias = respostas %>%
+    filter(categoria != "Outros") %>%
+    group_by(categoria, tema) %>% 
+    summarise(media_geral = mean(media), 
+              maior = max(media), 
+              menor = min(media))
+ufcg = respostas %>%
+    filter(categoria != "Outros", IES == "UFCG") %>%
+    group_by(tema) %>% 
+    summarise(ufcg = mean(media))
+
+comparacao = medias %>% 
+    left_join(ufcg, by = "tema") %>% 
+    mutate(diferenca = ufcg - media_geral, 
+           maior_dif = maior - media_geral, 
+           menor_dif = menor - media_geral)
+```
+
+```{r fig.height=12, fig.width=6}
+comparacao %>%
+    filter(!is.na(ufcg)) %>% 
+    ggplot(aes(x = reorder(tema, diferenca))) +
+    geom_col(aes(y = diferenca,
+                 fill = diferenca > 0)) +
+    labs(
+        x = "",
+        y = "UFCG - média",
+        title = "Notas nas respostas de Infraestrutura",
+        subtitle = "Quadrados são a média da UF.",
+        caption = "Apenas cursos de CC com pelo menos 20 respostas"
+    ) +
+    facet_grid(reorder(categoria, -diferenca) ~ ., scales = "free_y") +
+    coord_flip() + 
+    theme(legend.position = "None")
+```
+
+```{r fig.height=12, fig.width=6}
+comparacao %>%
+    filter(!is.na(ufcg)) %>% 
+    ggplot(aes(x = reorder(tema, diferenca))) +
+    geom_crossbar(aes(ymin = menor_dif,
+                      y = 0,
+                      ymax = maior_dif), 
+                  color = "grey") + 
+    geom_col(aes(y = diferenca,
+                 fill = diferenca > 0)) +
+    
+    labs(
+        x = "",
+        y = "UFCG - média",
+        title = "Comparação com a média nacional",
+        subtitle = "O retângulo cinza mostra o curso melhor/pior avaliado"
+    ) +
+    facet_grid(reorder(categoria, -diferenca) ~ ., scales = "free_y") +
+    coord_flip() + 
+    theme(legend.position = "None")
+```
+

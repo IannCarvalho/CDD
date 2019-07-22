@@ -1,0 +1,8 @@
+"0","atividade %>% "
+"0","  filter(!is.na(seguidores)) %>% "
+"0","  ggplot(aes(x = UF, y = seguidores)) + "
+"0","  geom_jitter(width = .1) + "
+"0","  labs("
+"0","    x = ""UF do parlamentar"", "
+"0","    y = ""Seguidores no twitter"""
+"0","  )"

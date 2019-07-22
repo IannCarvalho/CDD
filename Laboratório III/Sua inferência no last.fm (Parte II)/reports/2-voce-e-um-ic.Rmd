@@ -1,0 +1,231 @@
+---
+title: "Implementando ICs"
+author: "Iann Carvalho Barbosa"
+output:
+  html_document:
+    theme: readable
+    df_print: paged
+    toc: yes
+  html_notebook:
+    fig_width: 7
+    theme: readable
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(gridExtra)
+library(tidyverse)
+library(boot)
+library(broom)
+theme_set(theme_bw())
+```
+
+## Os dados
+
+```{r}
+set.seed(12345)
+
+lastfm = read_csv(here::here("data/experimento-lastfm.csv"), 
+                  col_types = cols(.default = col_double(), 
+                                   user = col_character()))
+
+lastfm = lastfm %>%
+  na.omit() %>%
+  mutate(news_old = news/(news+old))
+
+glimpse(lastfm)
+```
+
+## Proporção de artistas novos e popularidade
+
+Utilizaremos ICs para estimar duas métricas sobre os usuários do LastFM em geral durante um período de 6 meses. Em ambos os casos faremos isso a partir de uma amostra de 300 usuários. As duas métricas são: 
+
+### 1. Qual a proporção de novos artistas em geral escutada por usuários?
+
+```{r}
+theta <- function(df) {
+    df %>% pull(news_old) %>% mean()
+}
+
+theta_news_old = theta(lastfm)
+```
+
+```{r}
+lastfm = lastfm %>%
+  sample_n(300) %>%
+  select(news, old, mediana_pop, news_old)
+
+theta_c = theta(lastfm)
+```
+
+```{r}
+bootstrap <- function(x){
+    news_old = x %>%
+      pull(news_old)
+    
+    boot_x = sample(news_old, size = NROW(news_old), replace = TRUE)
+    
+    return(mean(boot_x))
+}
+
+reamostragens = tibble(i = 1:4000) %>% 
+    mutate(theta_c_s = map_dbl(i, ~ bootstrap(lastfm)))
+```
+
+```{r}
+p1 = reamostragens %>%
+    ggplot(aes(x = theta_c_s)) +
+    geom_histogram(binwidth = .002, colour = "chocolate4", fill = "chocolate2") +
+    labs(x = "Theta_C_S", y = "Quantidade")
+
+p2 = reamostragens %>%
+    ggplot(aes(x = theta_c_s - theta_c)) +
+    geom_histogram(binwidth = .002, colour = "chocolate4", fill = "chocolate2") +
+    labs(x = "Theta_C_S - Theta_C", y = "Quantidade")
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r}
+confianca <- 0.95
+alpha <- 1 - confianca
+intervalo = reamostragens %>% 
+  mutate(erro = theta_c_s - theta_c) %>% 
+  summarise(erro_i = quantile(erro, alpha / 2), 
+            erro_s = quantile(erro, 1 - alpha / 2),
+            valor_i = theta_c + erro_i, 
+            valor_s = theta_c + erro_s)
+intervalo
+```
+
+```{r}
+ggplot() +
+    geom_rect(data = intervalo, aes(xmin = valor_i, xmax = valor_s), ymin = -Inf, ymax = Inf, fill = "cyan2", alpha = .25) +
+    geom_histogram(data = reamostragens, aes(theta_c_s), binwidth = .002, fill = "cyan3", colour = "cyan4") +
+    geom_vline(xintercept = theta_c, color = "goldenrod2", size = 1) +
+    labs(title = "Intervalo estimado via Bootstrap", x = "Theta_C_S", y = "Quantidade")
+```
+
+#### Usando bibliotecas Boot e Broom
+
+```{r}
+theta <- function(d, i) {
+    agrupado = lastfm %>% 
+        slice(i) %>%
+        summarise(media = mean(news_old)) %>%
+        pull(media)
+}
+
+theta(lastfm, i = 1:NROW(lastfm))
+```
+
+```{r}
+ci1 = boot(data = lastfm,
+           statistic = theta,
+           R = 4000) %>%
+    tidy(conf.level = .95,
+         conf.method = "bca",
+         conf.int = TRUE)
+
+ci1
+```
+
+```{r}
+ggplot() +
+    geom_rect(data = ci1, aes(xmin = conf.low, xmax = conf.high), ymin = -Inf, ymax = Inf, fill = "darkolivegreen3", alpha = .25) +
+    geom_histogram(data = reamostragens, aes(theta_c_s), binwidth = .002, fill = "darkolivegreen3", colour = "darkolivegreen4") +
+    geom_vline(xintercept = theta_c, color = "darkorchid1", size = 1) +
+    labs(title = "Intervalo estimado via Bootstrap", x = "Theta_C_S", y = "Quantidade")
+```
+
+Em média, os usuários do LastFM ouvem artistas novos em 23.7% das vezes, ou seja, escutam um novo artista a cada três artistas já conhecidos, aproximadamente. Esse resultado pode ser melhor expresso pelo intervalo [22.6%, 24,9%] com 95% de confiança.
+
+### 2. Para os usuários que gostam de música muito pop (mediana_pop > 5), qual a correlação entre a popularidade mediana dos artistas escutado e a proporção dos artistas escutados que eram novos.
+
+```{r}
+funcao_theta_corr <- function(df) {
+    x = df %>% filter(mediana_pop > 5)
+    return(cor(x$mediana_pop, x$news_old))
+}
+
+theta_corr <- function(d, i) {
+     agrupado = d %>% slice(i)
+     
+    corr = funcao_theta_corr(agrupado)
+    return(corr)
+}
+
+theta_c_corr = funcao_theta_corr(lastfm)
+theta_c_corr_lib = theta_corr(lastfm, i = 1:NROW(lastfm))
+```
+
+```{r}
+outro_bootstrap <- function(x){
+    boot_x <- sample_n(x, size = NROW(x), replace = TRUE)
+    theta_c_s <- funcao_theta_corr(boot_x)
+    
+    return(theta_c_s)
+}
+
+reamostragens_2 = tibble(i = 1:4000) %>% 
+    mutate(theta_c_s = map_dbl(i, ~ outro_bootstrap(lastfm)))
+```
+
+```{r}
+p3 = reamostragens_2 %>%
+    ggplot(aes(x = theta_c_s)) +
+    geom_histogram(binwidth = .02, colour = "chocolate4", fill = "chocolate2") +
+    labs(x = "Theta_C", y = "Quantidade")
+
+p4 = reamostragens_2 %>%
+    ggplot(aes(x = theta_c_s - theta_c)) +
+    geom_histogram(binwidth = .02, colour = "chocolate4", fill = "chocolate2") +
+    labs(x = "Theta_C_S - Theta_C", y = "Quantidade")
+
+grid.arrange(p3, p4, ncol = 2)
+```
+
+```{r}
+confianca = 0.95
+alpha = 1 - confianca
+
+intervalo_2 = reamostragens_2 %>% 
+  mutate(erro = theta_c_s - theta_c) %>% 
+  summarise(erro_i = quantile(erro, alpha / 2), 
+            erro_s = quantile(erro, 1 - alpha / 2),
+            valor_i = theta_c + erro_i, 
+            valor_s = theta_c + erro_s)
+
+intervalo_2
+```
+
+```{r}
+ggplot() +
+    geom_rect(data = intervalo_2, aes(xmin = valor_i, xmax = valor_s), ymin = -Inf, ymax = Inf, fill = "cyan3", alpha = .25) +
+    geom_histogram(data = reamostragens_2, aes(theta_c_s), binwidth = .02, fill = "cyan3", colour = "cyan4") +
+    geom_vline(xintercept = theta_c_corr, color = "goldenrod2", size = 1) +
+    labs(title = "Intervalo estimado via Bootstrap", x = "Theta_C_S", y = "Quantidade")
+```
+
+#### Usando bibliotecas Boot e Broom
+
+```{r}
+intervalo_2_lib = lastfm %>%
+  boot(statistic = theta_corr, R = 4000) %>% 
+  tidy(conf.level = .95, conf.int = TRUE)
+
+intervalo_2_lib
+```
+
+```{r}
+ggplot() +
+    geom_rect(data = intervalo_2_lib, aes(xmin = conf.low, xmax = conf.high), ymin = -Inf, ymax = Inf, fill = "darkolivegreen3", alpha = .25) +
+    geom_histogram(data = reamostragens_2, aes(theta_c_s), binwidth = .02, fill = "darkolivegreen3", colour = "darkolivegreen4") +
+    geom_vline(xintercept = theta_c_corr, color = "darkorchid1", size = 1) +
+    labs(title = "Intervalo estimado via Bootstrap", x = "Theta_C_S", y = "Quantidade")
+```
+
+A correlação entre a popularidade dos artistas escutados pelos usuários do LastFM e a proporção de novos artistas que escutam é, em média, de -0.01 quando esses usuários escutam artistas muito populares. Portanto, não parece existir correlação entre essas duas variáveis nesse caso. Ainda, o valor da correlação encontrada pode ser melhor expressa pelo intervalo [-0.14, 0.12] com 95% de confiança.
+

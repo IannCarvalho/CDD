@@ -1,0 +1,2 @@
+"0","atividade %>% "
+"0","  filter(!is.na(twitter))"

@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1561726581180.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "A6C465B9",
+    "lastKnownWriteTime" : 1561725827,
+    "last_content_update" : 1561726581180,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "4D88B63F",
+        "caption" : "para_plotar_modelo",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=para_plotar_modelo&cache_key=4D88B63F",
+        "displayedObservations" : 20,
+        "environment" : "",
+        "object" : "para_plotar_modelo",
+        "preview" : 0,
+        "totalObservations" : 20,
+        "variables" : 4
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

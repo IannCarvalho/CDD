@@ -1,0 +1,3 @@
+"0","modelo = lm(engaj_total_log ~ n_proprio_log + n_retweet_log + casa, "
+"0","   data = atividade)"
+"0","tidy(modelo)"
